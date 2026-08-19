@@ -17,7 +17,7 @@ import { RefreshCw, Search, ShieldAlert } from "lucide-react";
 export default function ReconciliationPage() {
   const [disagreements, setDisagreements] = useState<Disagreement[]>([]);
   const [summary, setSummary] = useState<ReconciliationSummary | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
 
