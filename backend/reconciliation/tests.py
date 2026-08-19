@@ -160,8 +160,40 @@ class ReconciliationServiceTests(TestCase):
         for d in disagreements:
             self.assertEqual(d["record_id"], "REC-2002")
             self.assertEqual(d["reason"], "duplicate_system_b_entry")
+            self.assertIn("duplicate_system_b_entry", d["reasons"])
+            self.assertIn("value_mismatch", d["reasons"])
             self.assertEqual(d["system_a_value"], "10000.00")
             self.assertIn(d["entry_id"], ["ENT-9002A", "ENT-9002B"])
+
+    def test_duplicate_with_matching_value_only_has_duplicate_reason(self):
+        """
+        Duplicate entries that have identical values to System A should only have duplicate reason.
+        """
+        SystemARecord.objects.create(
+            record_id="REC-2002M",
+            location=self.loc_101,
+            total_value=Decimal("5000.00"),
+        )
+        SystemBEntry.objects.create(
+            entry_id="ENT-9002M1",
+            record_ref="REC-2002M",
+            location=self.loc_101,
+            raw_value="5000.00",
+            parsed_value=Decimal("5000.00"),
+        )
+        SystemBEntry.objects.create(
+            entry_id="ENT-9002M2",
+            record_ref="REC-2002M",
+            location=self.loc_101,
+            raw_value="5000.00",
+            parsed_value=Decimal("5000.00"),
+        )
+
+        disagreements = reconcile_records(org_id="ORG-A")
+        matching_disagreements = [d for d in disagreements if d["record_id"] == "REC-2002M"]
+        self.assertEqual(len(matching_disagreements), 2)
+        for d in matching_disagreements:
+            self.assertEqual(d["reasons"], ["duplicate_system_b_entry"])
 
     def test_case_4_value_mismatch(self):
         """

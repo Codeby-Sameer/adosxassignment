@@ -109,7 +109,7 @@ def reconcile_records(
     1. missing_in_system_b: System A record exists with no corresponding System B entry.
     2. invalid_system_b_reference: System B entry references a nonexistent System A record.
     3. duplicate_system_b_entry: Multiple System B entries reference the same System A record.
-    4. value_mismatch: 1-to-1 match between System A and System B with differing numeric values.
+    4. value_mismatch: Disagreement where System A and System B values differ (applies to 1-to-1 matches or duplicates).
 
     Tenant Isolation:
     Reconciliation is performed per-organization using the Location -> Organization hierarchy.
@@ -173,6 +173,7 @@ def reconcile_records(
                 disagreements.append({
                     "record_id": sa_rec.record_id,
                     "reason": "missing_in_system_b",
+                    "reasons": ["missing_in_system_b"],
                     "system_a_value": str(sa_rec.total_value) if sa_rec.total_value is not None else None,
                     "system_b_value": None,
                     "location_id": sa_rec.location_id,
@@ -189,6 +190,7 @@ def reconcile_records(
                     disagreements.append({
                         "record_id": norm_ref or entry.record_ref.strip(),
                         "reason": "invalid_system_b_reference",
+                        "reasons": ["invalid_system_b_reference"],
                         "system_a_value": None,
                         "system_b_value": entry.raw_value if entry.raw_value != "" else None,
                         "location_id": entry.location_id,
@@ -198,11 +200,21 @@ def reconcile_records(
                     })
             elif len(matched_entries) > 1:
                 # Case 3: Duplicate System B entry (multiple System B entries refer to same System A record)
+                # Check if each duplicate entry ALSO has a value mismatch with System A
                 sa_rec = sa_records[norm_ref]
+                a_val = sa_rec.total_value
+
                 for entry in matched_entries:
+                    entry_reasons = ["duplicate_system_b_entry"]
+                    b_val = entry.parsed_value if entry.parsed_value is not None else entry.raw_value
+
+                    if not values_are_equivalent(a_val, b_val):
+                        entry_reasons.append("value_mismatch")
+
                     disagreements.append({
                         "record_id": norm_ref,
                         "reason": "duplicate_system_b_entry",
+                        "reasons": entry_reasons,
                         "system_a_value": str(sa_rec.total_value) if sa_rec.total_value is not None else None,
                         "system_b_value": entry.raw_value if entry.raw_value != "" else None,
                         "location_id": entry.location_id,
@@ -221,6 +233,7 @@ def reconcile_records(
                     disagreements.append({
                         "record_id": norm_ref,
                         "reason": "value_mismatch",
+                        "reasons": ["value_mismatch"],
                         "system_a_value": str(sa_rec.total_value) if sa_rec.total_value is not None else None,
                         "system_b_value": entry.raw_value if entry.raw_value != "" else None,
                         "location_id": sa_rec.location_id,
@@ -229,9 +242,12 @@ def reconcile_records(
                         "entry_id": entry.entry_id,
                     })
 
-    # Apply reason filter if provided
-    if reason:
-        disagreements = [d for d in disagreements if d["reason"] == reason]
+    # Apply reason filter if provided (matches if reason in d["reasons"] or d["reason"] == reason)
+    if reason and reason != "all":
+        disagreements = [
+            d for d in disagreements
+            if reason in d.get("reasons", [d["reason"]]) or d["reason"] == reason
+        ]
 
     # Apply ordering if requested
     if ordering:

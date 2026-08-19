@@ -9,7 +9,12 @@ class DisagreementSerializer(serializers.Serializer):
         help_text="The record identifier (System A record_id or normalized System B record_ref)."
     )
     reason = serializers.CharField(
-        help_text="Reason for disagreement: missing_in_system_b, invalid_system_b_reference, duplicate_system_b_entry, or value_mismatch."
+        help_text="Primary reason for disagreement: missing_in_system_b, invalid_system_b_reference, duplicate_system_b_entry, or value_mismatch."
+    )
+    reasons = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="All applicable reasons for this record (e.g. duplicate entry with value mismatch).",
     )
     system_a_value = serializers.CharField(
         allow_null=True,

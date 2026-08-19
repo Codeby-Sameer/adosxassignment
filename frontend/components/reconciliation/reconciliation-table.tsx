@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Disagreement } from "@/types/reconciliation";
+import { Disagreement, DisagreementReason } from "@/types/reconciliation";
 import { DisagreementBadge } from "./disagreement-badge";
 import { formatCurrency } from "@/lib/utils";
 import { MapPin } from "lucide-react";
@@ -25,7 +25,7 @@ export function ReconciliationTable({ disagreements }: ReconciliationTableProps)
           <TableHeader>
             <TableRow className="border-b border-slate-200 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/40">
               <TableHead className="w-[170px] min-w-[150px]">Record</TableHead>
-              <TableHead className="min-w-[190px]">Reason</TableHead>
+              <TableHead className="min-w-[220px]">Reason(s)</TableHead>
               <TableHead className="text-right min-w-[130px]">System A</TableHead>
               <TableHead className="text-right min-w-[130px]">System B</TableHead>
               <TableHead className="min-w-[140px] text-right">Difference</TableHead>
@@ -36,7 +36,9 @@ export function ReconciliationTable({ disagreements }: ReconciliationTableProps)
           <TableBody>
             {disagreements.map((item, index) => {
               const rowKey = `${item.record_id}-${item.entry_id || ""}-${index}`;
-              const isMismatch = item.reason === "value_mismatch";
+              const allReasons: DisagreementReason[] =
+                item.reasons && item.reasons.length > 0 ? item.reasons : [item.reason];
+              const isMismatch = allReasons.includes("value_mismatch");
 
               // Calculate difference if both values are valid numbers
               let diffText: React.ReactNode = "—";
@@ -81,9 +83,13 @@ export function ReconciliationTable({ disagreements }: ReconciliationTableProps)
                     </div>
                   </TableCell>
 
-                  {/* Disagreement Reason Badge */}
+                  {/* Disagreement Reason Badges */}
                   <TableCell className="align-top py-3.5">
-                    <DisagreementBadge reason={item.reason} />
+                    <div className="flex flex-wrap gap-1.5">
+                      {allReasons.map((r, i) => (
+                        <DisagreementBadge key={i} reason={r} />
+                      ))}
+                    </div>
                   </TableCell>
 
                   {/* System A Value */}

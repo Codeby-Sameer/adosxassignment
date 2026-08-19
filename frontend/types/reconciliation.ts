@@ -7,6 +7,7 @@ export type DisagreementReason =
 export interface Disagreement {
   record_id: string;
   reason: DisagreementReason;
+  reasons?: DisagreementReason[];
   system_a_value: string | null;
   system_b_value: string | null;
   location_id: string;

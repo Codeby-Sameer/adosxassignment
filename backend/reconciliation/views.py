@@ -47,7 +47,11 @@ class ReconciliationSummaryView(APIView):
         location_id = request.query_params.get("location_id")
 
         disagreements = reconcile_records(org_id=org_id, location_id=location_id)
-        reason_counts = dict(Counter(d["reason"] for d in disagreements))
+        
+        all_reasons = []
+        for d in disagreements:
+            all_reasons.extend(d.get("reasons", [d["reason"]]))
+        reason_counts = dict(Counter(all_reasons))
 
         sa_qs = SystemARecord.objects.all()
         sb_qs = SystemBEntry.objects.all()
